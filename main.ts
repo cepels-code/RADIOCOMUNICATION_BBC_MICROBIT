@@ -1,16 +1,38 @@
-// Index for tracking the current letter (0 = A, 1 = B, 2 = C, ...)
+/**
+ * Repository: RADIOCOMUNICATION_BBC_MICROBIT
+ * URL: https://github.com/cepels-code/RADIOCOMUNICATION_BBC_MICROBIT
+ * Description: A two-way radio alphabet transceiver for BBC micro:bit V2
+ * Language: TypeScript (MakeCode micro:bit)
+ * 
+ * Controls:
+ * - Button B: Move forward in the alphabet (A -> B -> C)
+ * - Gold Touch Logo: Move backward in the alphabet (C -> B -> A)
+ * - Button A: Transmit selected letter via radio
+ * - Buttons A+B: Clear both local and remote LED displays
+ */
+
+// Track letter position (0 = A, 1 = B, 2 = C, ...)
 let letterIndex = 0
 let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-// Set radio group
+// Set radio frequency group (must be identical on all micro:bits)
 radio.setGroup(1)
 
-// Display the first letter "A" on startup
+// Display 'A' on startup
 basic.showString(alphabet.charAt(letterIndex))
 
-// --- BUTTON B: Cycle through the alphabet ---
+// --- BUTTON B: Move FORWARD in the alphabet (A -> B -> C) ---
 input.onButtonPressed(Button.B, function () {
-    letterIndex = (letterIndex + 1) % alphabet.length // Move to the next letter
+    letterIndex = (letterIndex + 1) % alphabet.length
+    basic.showString(alphabet.charAt(letterIndex))
+})
+
+// --- GOLD LOGO: Move BACKWARD in the alphabet (C -> B -> A) ---
+input.onLogoEvent(TouchButtonEvent.Pressed, function () {
+    letterIndex = letterIndex - 1
+    if (letterIndex < 0) {
+        letterIndex = alphabet.length - 1 // Wrap around to Z if going below A
+    }
     basic.showString(alphabet.charAt(letterIndex))
 })
 
@@ -18,7 +40,6 @@ input.onButtonPressed(Button.B, function () {
 input.onButtonPressed(Button.A, function () {
     let selectedLetter = alphabet.charAt(letterIndex)
 
-    // Send the letter as a string message
     radio.sendString(selectedLetter)
 
     // Quick flash effect to confirm sending
@@ -27,13 +48,18 @@ input.onButtonPressed(Button.A, function () {
     basic.showString(selectedLetter)
 })
 
-// --- BUTTONS A+B: Clear screen and reset ---
+// --- BUTTONS A+B: Clear both local and remote screens ---
 input.onButtonPressed(Button.AB, function () {
+    radio.sendString("CLEAR")
     letterIndex = 0
     basic.clearScreen()
 })
 
-// --- RECEIVE MESSAGE: Display received letter ---
+// --- RECEIVE MESSAGE: Display received letter or clear screen ---
 radio.onReceivedString(function (receivedString) {
-    basic.showString(receivedString)
+    if (receivedString == "CLEAR") {
+        basic.clearScreen()
+    } else {
+        basic.showString(receivedString)
+    }
 })
